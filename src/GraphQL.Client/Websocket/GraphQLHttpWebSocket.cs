@@ -94,7 +94,17 @@ namespace GraphQL.Client.Http.Websocket
         /// <param name="request">the <see cref="GraphQLRequest"/> to start the subscription</param>
         /// <param name="exceptionHandler">Optional: exception handler for handling exceptions within the receive pipeline</param>
         /// <returns>a <see cref="IObservable{TResponse}"/> which represents the subscription</returns>
-        public IObservable<GraphQLResponse<TResponse>> CreateSubscriptionStream<TResponse>(GraphQLRequest request, Action<Exception>? exceptionHandler = null) =>
+        public IObservable<GraphQLResponse<TResponse>> CreateSubscriptionStream<TResponse>(GraphQLRequest request, Action<Exception>? exceptionHandler = null) => CreateSubscriptionStream<TResponse>(request, exceptionHandler, null);
+
+        /// <summary>
+        /// Create a new subscription stream
+        /// </summary>
+        /// <typeparam name="TResponse">the response type</typeparam>
+        /// <param name="request">the <see cref="GraphQLRequest"/> to start the subscription</param>
+        /// <param name="exceptionHandler">Optional: exception handler for handling exceptions within the receive pipeline</param>
+        /// <param name="readyHandler">Optional: called when the subscription is fully ready to receive messages</param>
+        /// <returns>a <see cref="IObservable{TResponse}"/> which represents the subscription</returns>
+        public IObservable<GraphQLResponse<TResponse>> CreateSubscriptionStream<TResponse>(GraphQLRequest request, Action<Exception>? exceptionHandler, Action readyHandler) =>
             Observable.Defer(() =>
                     Observable.Create<GraphQLResponse<TResponse>>(async observer =>
                     {
@@ -189,6 +199,7 @@ namespace GraphQL.Client.Http.Websocket
                         try
                         {
                             await QueueWebSocketRequest(startRequest).ConfigureAwait(false);
+                            readyHandler?.Invoke();
                         }
                         catch (Exception e)
                         {

@@ -198,6 +198,44 @@ namespace GraphQL.Integration.Tests.WebsocketTests
             await observer.Should().CompleteAsync();
         }
 
+        [Fact]
+        public async void CanLookAtSubscriptionReadyHandler()
+        {
+            var callbackMonitor = ChatClient.ConfigureMonitorForOnWebsocketConnected();
+            await ChatClient.InitializeWebsocketConnection();
+            callbackMonitor.Should().HaveBeenInvokedWithPayload();
+
+            var tcs = new TaskCompletionSource();
+            Debug.WriteLine("creating subscription stream");
+            var observable = ChatClient.CreateSubscriptionStream<MessageAddedSubscriptionResult>(_subscriptionRequest, null, () => tcs.SetResult());
+
+            Debug.WriteLine("subscribing...");
+            await Task.Delay(500);
+            Assert.False(tcs.Task.IsCompleted);
+            using var observer = observable.Observe();
+            await await Task.WhenAny(tcs.Task, Task.Delay(10000));
+            await observer.Should().PushAsync(1);
+            observer.RecordedMessages.Last().Errors.Should().BeNullOrEmpty();
+            observer.RecordedMessages.Last().Data.MessageAdded.Content.Should().Be(InitialMessage.Content);
+
+            const string message1 = "Hello World";
+            var response = await ChatClient.AddMessageAsync(message1);
+            response.Errors.Should().BeNullOrEmpty();
+            response.Data.AddMessage.Content.Should().Be(message1);
+            await observer.Should().PushAsync(2);
+            observer.RecordedMessages.Last().Data.MessageAdded.Content.Should().Be(message1);
+
+            const string message2 = "lorem ipsum dolor si amet";
+            response = await ChatClient.AddMessageAsync(message2);
+            response.Data.AddMessage.Content.Should().Be(message2);
+            await observer.Should().PushAsync(3);
+            observer.RecordedMessages.Last().Data.MessageAdded.Content.Should().Be(message2);
+
+            // disposing the client should throw a TaskCanceledException on the subscription
+            ChatClient.Dispose();
+            await observer.Should().CompleteAsync();
+        }
+
         public class MessageAddedSubscriptionResult
         {
             public MessageAddedContent MessageAdded { get; set; }

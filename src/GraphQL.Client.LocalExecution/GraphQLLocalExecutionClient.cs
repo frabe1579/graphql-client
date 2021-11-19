@@ -72,6 +72,18 @@ namespace GraphQL.Client.LocalExecution
             Action<Exception> exceptionHandler)
             => CreateSubscriptionStream<TResponse>(request);
 
+        public IObservable<GraphQLResponse<TResponse>> CreateSubscriptionStream<TResponse>(GraphQLRequest request,
+            Action<Exception> exceptionHandler, Action readyHandler)
+            => Observable.Defer(() => ExecuteSubscriptionAsync<TResponse>(request).ContinueWith(_ =>
+            {
+                readyHandler?.Invoke();
+                return _.Result;
+            }, TaskContinuationOptions.OnlyOnRanToCompletion).ToObservable())
+                .Concat()
+                .Publish()
+                .RefCount();
+
+
         #region Private Methods
 
         private async Task<GraphQLResponse<TResponse>> ExecuteQueryAsync<TResponse>(GraphQLRequest request, CancellationToken cancellationToken)

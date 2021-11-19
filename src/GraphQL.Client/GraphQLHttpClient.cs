@@ -102,8 +102,18 @@ namespace GraphQL.Client.Http
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(GraphQLHttpClient));
-            
+
             var observable = GraphQlHttpWebSocket.CreateSubscriptionStream<TResponse>(request, exceptionHandler);
+            return observable;
+        }
+
+        /// <inheritdoc />
+        public IObservable<GraphQLResponse<TResponse>> CreateSubscriptionStream<TResponse>(GraphQLRequest request, Action<Exception>? exceptionHandler, Action readyHandler)
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(GraphQLHttpClient));
+
+            var observable = GraphQlHttpWebSocket.CreateSubscriptionStream<TResponse>(request, exceptionHandler, readyHandler);
             return observable;
         }
 
