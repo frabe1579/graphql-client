@@ -1,0 +1,53 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+name: 4.0.2-beta$(Rev:rr)
+
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+- task: UseDotNet@2
+  displayName: Install SDK
+  inputs:
+    packageType: 'sdk'
+    version: '5.0.x'
+
+- task: DotNetCoreCLI@2
+  displayName: Restore
+  inputs:
+    command: 'restore'
+    projects: 'GraphQL.Client.sln'
+    feedsToUse: 'select'
+
+- task: DotNetCoreCLI@2
+  displayName: Build
+  inputs:
+    command: 'build'
+    projects: 'GraphQL.Client.sln'
+    arguments: '--configuration $(buildConfiguration) --no-restore -p:Version=$(Build.BuildNumber)'
+
+# - task: DotNetCoreCLI@2
+#   displayName: Pack
+#   inputs:
+#     command: 'pack'
+#     packagesToPack: 'src/**/*.csproj'
+#     nobuild: true
+#     versioningScheme: 'byBuildNumber'
+#     verbosityPack: 'Minimal'
+
+- task: NuGetCommand@2
+  displayName: Push
+  inputs:
+    command: 'push'
+    packagesToPush: 'src/**/bin/Release/*.nupkg;!**/*.symbols.nupkg'
+    nuGetFeedType: 'internal'
+    publishVstsFeed: '064d4df6-c6ce-4815-b337-aae4dedb02ff'
