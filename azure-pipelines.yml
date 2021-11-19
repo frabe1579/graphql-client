@@ -41,7 +41,8 @@ steps:
     command: 'pack'
     packagesToPack: 'src/**/*.csproj'
     nobuild: true
-    versioningScheme: 'off'
+    versioningScheme: 'byBuildNumber'
+    verbosityPack: 'Minimal'
 
 - task: NuGetCommand@2
   displayName: Push
